@@ -11,26 +11,21 @@
 @interface PDCViewController ()
 @property (strong, nonatomic) UIDynamicAnimator *animator;
 @property (strong, nonatomic) NSArray *dynamicItems;
+@property (strong, nonatomic) UIView *anchorView;
+@property (strong, nonatomic) UIView *tailView;
+@property (strong, nonatomic) UIAttachmentBehavior *attachmentBehavior;
 @end
-
-#define NUM_DYNAMIC_ITEMS 10
 
 @implementation PDCViewController
 
 - (NSArray *)dynamicItems
 {
     if (!_dynamicItems) {
-        NSMutableArray *allItems = [NSMutableArray array];
-        for (int i=0; i<NUM_DYNAMIC_ITEMS; i++) {
-            CGFloat x = arc4random_uniform(CGRectGetWidth(self.view.bounds));
-            CGFloat y = arc4random_uniform(CGRectGetHeight(self.view.bounds));
-            [allItems addObject:[[UIView alloc] initWithFrame:CGRectMake(x, y, 50, 50)]];
-        }
-        _dynamicItems = [NSArray arrayWithArray:allItems];
-        for (UIView *item in _dynamicItems) {
-            item.backgroundColor = [UIColor magentaColor];
-            [self.view addSubview:item];
-        }
+        self.anchorView = [[UIView alloc] initWithFrame:CGRectMake(200, 200, 50, 50)];
+        self.anchorView.backgroundColor = [UIColor magentaColor];
+        self.tailView = [[UIView alloc] initWithFrame:CGRectMake(300, 300, 50, 50)];
+        self.tailView.backgroundColor = [UIColor colorWithWhite:0.5 alpha:1.0];
+        _dynamicItems = @[self.anchorView, self.tailView];
     }
     return _dynamicItems;
 }
@@ -40,18 +35,28 @@
     [super viewDidLoad];
 	// Do any additional setup after loading the view, typically from a nib.
     
+    // init views
+    for (UIView *v in self.dynamicItems) {
+        [self.view addSubview:v];
+    }
+    
     // Add animator:
     self.animator = [[UIDynamicAnimator alloc] initWithReferenceView:self.view];
     
-    // Add behavior:
-    UIGravityBehavior *gravityBehavior = [[UIGravityBehavior alloc] initWithItems:self.dynamicItems];
-    gravityBehavior.gravityDirection = CGVectorMake(0.0, 1.0);
-    [self.animator addBehavior:gravityBehavior];
+    // Add attachment behavior:
+    self.attachmentBehavior = [[UIAttachmentBehavior alloc]
+                               initWithItem:self.tailView
+                               attachedToAnchor:self.anchorView.center];
+    [self.animator addBehavior:self.attachmentBehavior];
     
-    UICollisionBehavior *collisionBehavior = [[UICollisionBehavior alloc] initWithItems:self.dynamicItems];
-    collisionBehavior.collisionMode = UICollisionBehaviorModeBoundaries;
-    collisionBehavior.translatesReferenceBoundsIntoBoundary = YES;
-    [self.animator addBehavior:collisionBehavior];
+    [self.anchorView addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handleAttachmentGesture:)]];
+}
+
+- (void)handleAttachmentGesture:(UIPanGestureRecognizer *)gesture
+{
+    CGPoint gesturePoint = [gesture locationInView:self.view];
+    self.anchorView.center = gesturePoint;
+    [self.attachmentBehavior setAnchorPoint:gesturePoint];
 }
 
 @end
