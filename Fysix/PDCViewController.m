@@ -26,10 +26,17 @@
     // Add animator:
     self.animator = [[UIDynamicAnimator alloc] initWithReferenceView:self.view];
     
+    // Add gravity behavior:
+    UIGravityBehavior *gravityBehavior = [[UIGravityBehavior alloc] initWithItems:@[self.tailView]];
+    [self.animator addBehavior:gravityBehavior];
+    
     // Add attachment behavior:
     self.attachmentBehavior = [[UIAttachmentBehavior alloc]
                                initWithItem:self.tailView
                                attachedToAnchor:self.anchorView.center];
+    self.attachmentBehavior.frequency = 1.0;
+    self.attachmentBehavior.damping = 0.1;
+    self.attachmentBehavior.length = 100.0;
     [self.animator addBehavior:self.attachmentBehavior];
 }
 
