@@ -10,34 +10,11 @@
 
 @interface PDCViewController ()
 @property (strong, nonatomic) UIDynamicAnimator *animator;
-@property (strong, nonatomic) IBOutlet UIView *snapView;
-@property (strong, nonatomic) IBOutlet UIView *rightTargetView;
-@property (strong, nonatomic) IBOutlet UIView *leftTargetView;
-@property (strong, nonatomic) UISnapBehavior *rightSnapBehavior;
-@property (strong, nonatomic) UISnapBehavior *leftSnapBehavior;
+@property (strong, nonatomic) IBOutlet UIView *pushView;
+@property (strong, nonatomic) UIPushBehavior *pushBehavior;
 @end
 
 @implementation PDCViewController
-
-- (UISnapBehavior *)rightSnapBehavior
-{
-    if (!_rightSnapBehavior) {
-        _rightSnapBehavior = [[UISnapBehavior alloc] initWithItem:self.snapView
-                                                      snapToPoint:self.rightTargetView.center];
-        _rightSnapBehavior.damping = 0.25;
-    }
-    return _rightSnapBehavior;
-}
-
-- (UISnapBehavior *)leftSnapBehavior
-{
-    if (!_leftSnapBehavior) {
-        _leftSnapBehavior = [[UISnapBehavior alloc] initWithItem:self.snapView
-                                                     snapToPoint:self.leftTargetView.center];
-        _leftSnapBehavior.damping = 0.95;
-    }
-    return _leftSnapBehavior;
-}
 
 - (void)viewDidLoad
 {
@@ -47,18 +24,39 @@
     // Add animator:
     self.animator = [[UIDynamicAnimator alloc] initWithReferenceView:self.view];
     
-    // Add snap behavior:
-    [self.animator addBehavior:self.rightSnapBehavior];
+    // Add gravity:
+    UIGravityBehavior *gravityBehavior = [[UIGravityBehavior alloc] initWithItems:@[self.pushView]];
+    [self.animator addBehavior:gravityBehavior];
+    
+    // Add boundary:
+    UICollisionBehavior *collisionBehavior = [[UICollisionBehavior alloc] initWithItems:@[self.pushView]];
+    collisionBehavior.translatesReferenceBoundsIntoBoundary = YES;
+    [self.animator addBehavior:collisionBehavior];
+    
+    // Add push behavior:
+    self.pushBehavior = [[UIPushBehavior alloc] initWithItems:@[self.pushView] mode:UIPushBehaviorModeInstantaneous];
+    self.pushBehavior.angle = 0.0;
+    self.pushBehavior.magnitude = 0.0;
+    [self.animator addBehavior:self.pushBehavior];
 }
 
-- (IBAction)handleTapGesture:(id)sender
+- (IBAction)handleTapGesture:(UITapGestureRecognizer *)sender
 {
-    if ([[self.animator behaviors] containsObject:self.rightSnapBehavior]) {
-        [self.animator removeBehavior:self.rightSnapBehavior];
-        [self.animator addBehavior:self.leftSnapBehavior];
-    } else {
-        [self.animator removeBehavior:self.leftSnapBehavior];
-        [self.animator addBehavior:self.rightSnapBehavior];
-    }
+    CGPoint tapPoint = [sender locationInView:self.view];
+    CGPoint itemPoint = self.pushView.center;
+
+    // Calculate direction of force toward tap:
+    self.pushBehavior.pushDirection = CGVectorMake(tapPoint.x - itemPoint.x,
+                                                   tapPoint.y - itemPoint.y);
+
+    // Calculate distance, inversely proportional to distance from block:
+    CGFloat dist = sqrtf(powf(tapPoint.x - itemPoint.x, 2.0) +
+                         powf(tapPoint.y - itemPoint.y, 2.0));
+    self.pushBehavior.magnitude = dist/100.0;
+    
+    // Apply instantaneous force:
+    self.pushBehavior.active = YES;
 }
+
+
 @end
