@@ -11,10 +11,33 @@
 @interface PDCViewController ()
 @property (strong, nonatomic) UIDynamicAnimator *animator;
 @property (strong, nonatomic) IBOutlet UIView *pushView;
-@property (strong, nonatomic) UIPushBehavior *pushBehavior;
+@property (strong, nonatomic) UIPushBehavior *tapPushBehavior;
+@property (strong, nonatomic) UIPushBehavior *antiGravityPushBehavior;
 @end
 
 @implementation PDCViewController
+
+- (UIPushBehavior *)tapPushBehavior
+{
+    if (!_tapPushBehavior) {
+        _tapPushBehavior = [[UIPushBehavior alloc] initWithItems:@[self.pushView] mode:UIPushBehaviorModeInstantaneous];
+        _tapPushBehavior.angle = 0.0;
+        _tapPushBehavior.magnitude = 0.0;
+        [self.animator addBehavior:_tapPushBehavior];
+    }
+    return _tapPushBehavior;
+}
+
+- (UIPushBehavior *)antiGravityPushBehavior
+{
+    if (!_antiGravityPushBehavior) {
+        _antiGravityPushBehavior = [[UIPushBehavior alloc] initWithItems:@[self.pushView] mode:UIPushBehaviorModeContinuous];
+        _antiGravityPushBehavior.pushDirection = CGVectorMake(0.0, -1.0);
+        _antiGravityPushBehavior.magnitude = 10.0;
+        [self.animator addBehavior:_antiGravityPushBehavior];
+    }
+    return _antiGravityPushBehavior;
+}
 
 - (void)viewDidLoad
 {
@@ -32,12 +55,6 @@
     UICollisionBehavior *collisionBehavior = [[UICollisionBehavior alloc] initWithItems:@[self.pushView]];
     collisionBehavior.translatesReferenceBoundsIntoBoundary = YES;
     [self.animator addBehavior:collisionBehavior];
-    
-    // Add push behavior:
-    self.pushBehavior = [[UIPushBehavior alloc] initWithItems:@[self.pushView] mode:UIPushBehaviorModeInstantaneous];
-    self.pushBehavior.angle = 0.0;
-    self.pushBehavior.magnitude = 0.0;
-    [self.animator addBehavior:self.pushBehavior];
 }
 
 - (IBAction)handleTapGesture:(UITapGestureRecognizer *)sender
@@ -46,17 +63,25 @@
     CGPoint itemPoint = self.pushView.center;
 
     // Calculate direction of force toward tap:
-    self.pushBehavior.pushDirection = CGVectorMake(tapPoint.x - itemPoint.x,
+    self.tapPushBehavior.pushDirection = CGVectorMake(tapPoint.x - itemPoint.x,
                                                    tapPoint.y - itemPoint.y);
 
     // Calculate distance, inversely proportional to distance from block:
     CGFloat dist = sqrtf(powf(tapPoint.x - itemPoint.x, 2.0) +
                          powf(tapPoint.y - itemPoint.y, 2.0));
-    self.pushBehavior.magnitude = dist/100.0;
+    self.tapPushBehavior.magnitude = dist/100.0;
     
     // Apply instantaneous force:
-    self.pushBehavior.active = YES;
+    self.tapPushBehavior.active = YES;
 }
 
+- (IBAction)handleGravitySwitch:(UISwitch *)sender
+{
+    if (sender.isOn) {
+        self.antiGravityPushBehavior.active = YES;
+    } else {
+        self.antiGravityPushBehavior.active = NO;
+    }
+}
 
 @end
