@@ -10,13 +10,34 @@
 
 @interface PDCViewController ()
 @property (strong, nonatomic) UIDynamicAnimator *animator;
-@property (strong, nonatomic) NSArray *dynamicItems;
-@property (strong, nonatomic) IBOutlet UIView *anchorView;
-@property (strong, nonatomic) IBOutlet UIView *tailView;
-@property (strong, nonatomic) UIAttachmentBehavior *attachmentBehavior;
+@property (strong, nonatomic) IBOutlet UIView *snapView;
+@property (strong, nonatomic) IBOutlet UIView *rightTargetView;
+@property (strong, nonatomic) IBOutlet UIView *leftTargetView;
+@property (strong, nonatomic) UISnapBehavior *rightSnapBehavior;
+@property (strong, nonatomic) UISnapBehavior *leftSnapBehavior;
 @end
 
 @implementation PDCViewController
+
+- (UISnapBehavior *)rightSnapBehavior
+{
+    if (!_rightSnapBehavior) {
+        _rightSnapBehavior = [[UISnapBehavior alloc] initWithItem:self.snapView
+                                                      snapToPoint:self.rightTargetView.center];
+        _rightSnapBehavior.damping = 0.25;
+    }
+    return _rightSnapBehavior;
+}
+
+- (UISnapBehavior *)leftSnapBehavior
+{
+    if (!_leftSnapBehavior) {
+        _leftSnapBehavior = [[UISnapBehavior alloc] initWithItem:self.snapView
+                                                     snapToPoint:self.leftTargetView.center];
+        _leftSnapBehavior.damping = 0.95;
+    }
+    return _leftSnapBehavior;
+}
 
 - (void)viewDidLoad
 {
@@ -26,25 +47,18 @@
     // Add animator:
     self.animator = [[UIDynamicAnimator alloc] initWithReferenceView:self.view];
     
-    // Add gravity behavior:
-    UIGravityBehavior *gravityBehavior = [[UIGravityBehavior alloc] initWithItems:@[self.tailView]];
-    [self.animator addBehavior:gravityBehavior];
-    
-    // Add attachment behavior:
-    self.attachmentBehavior = [[UIAttachmentBehavior alloc]
-                               initWithItem:self.tailView
-                               attachedToAnchor:self.anchorView.center];
-    self.attachmentBehavior.frequency = 1.0;
-    self.attachmentBehavior.damping = 0.1;
-    self.attachmentBehavior.length = 100.0;
-    [self.animator addBehavior:self.attachmentBehavior];
+    // Add snap behavior:
+    [self.animator addBehavior:self.rightSnapBehavior];
 }
 
-- (IBAction)handleAttachmentGesture:(UIPanGestureRecognizer *)sender
+- (IBAction)handleTapGesture:(id)sender
 {
-    CGPoint gesturePoint = [sender locationInView:self.view];
-    self.anchorView.center = gesturePoint;
-    [self.attachmentBehavior setAnchorPoint:gesturePoint];
+    if ([[self.animator behaviors] containsObject:self.rightSnapBehavior]) {
+        [self.animator removeBehavior:self.rightSnapBehavior];
+        [self.animator addBehavior:self.leftSnapBehavior];
+    } else {
+        [self.animator removeBehavior:self.leftSnapBehavior];
+        [self.animator addBehavior:self.rightSnapBehavior];
+    }
 }
-
 @end
